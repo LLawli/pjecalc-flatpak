@@ -1,0 +1,44 @@
+name: release
+# Cada release é um instalador do TRT8 espelhado por scripts/espelhar.sh, que
+# roda numa máquina no Brasil. Aqui se confere o arquivo que o GitHub serve e
+# se avisa a FlatPark, que fixa a versão nova em minutos.
+on:
+  release:
+    types: [published]
+permissions:
+  contents: read
+jobs:
+  conferir:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update && sudo apt-get install -y libarchive-tools
+      - name: Confere o asset com o SHA-256 do release e passa pelo apply_extra
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.event.release.tag_name }}
+          CORPO: ${{ github.event.release.body }}
+        run: |
+          versao=${TAG#v}
+          nome="pjecalc-$versao-instalador-x64.exe"
+          esperado=$(printf '%s\n' "$CORPO" | sed -n 's/.*SHA-256: `\([0-9a-f]\{64\}\)`.*/\1/p')
+          test -n "$esperado"
+          mkdir prova
+          gh release download "$TAG" -p "$nome" -O prova/pjecalc-installer.exe
+          echo "$esperado  prova/pjecalc-installer.exe" | sha256sum -c -
+          jre=$(sed -n 's/^ *url: \(.*jre.*\)$/\1/p' br.jus.trt8.PJeCalc.yml)
+          curl -fsSL -o prova/jre.tar.gz "$jre"
+          (cd prova && sh ../src/apply_extra.sh)
+          test "$(cat prova/version)" = "$versao"
+
+  flatpark:
+    needs: conferir
+    runs-on: ubuntu-24.04
+    # Sem o aviso, a FlatPark acha o release na varredura de 12 em 12 horas.
+    continue-on-error: true
+    permissions: {}
+    steps:
+      - uses: flatpark/publish-action@v1
+        with:
+          app-id: br.jus.trt8.PJeCalc
+          tag: ${{ github.event.release.tag_name }}

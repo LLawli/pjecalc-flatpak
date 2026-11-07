@@ -151,6 +151,60 @@ touch -d '-1 minute' "$tmp/run/pjecalc-browser"
 PATH="$tmp/bin:$PATH" XDG_RUNTIME_DIR="$tmp/run" sh "$raiz/src/pjecalc-browser.sh" http://localhost:9257/pjecalc
 confere 'pedido mais tarde abre de novo' test "$(wc -l < "$tmp/xdg-abriu")" -eq 2
 
+echo '== espelho'
+# O site do TRT8 em file://, com a página no formato real, e um gh falso que
+# anota o release criado.
+site="$tmp/trt8"
+mkdir -p "$site/sites/portal/files/roles/pje-calc" "$site/pagina" "$tmp/gh-bin"
+instalador_falso 9.9.5 "$tmp"
+mv "$tmp/pjecalc-installer.exe" "$site/sites/portal/files/roles/pje-calc/pjecalc-9.9.5-instalador-x64.exe"
+md5=$(md5sum < "$site/sites/portal/files/roles/pje-calc/pjecalc-9.9.5-instalador-x64.exe" | cut -c1-32 | tr 'a-f' 'A-F')
+pagina_falsa() { # <md5 do x64>
+    cat > "$site/pagina/index.html" <<EOF
+<ul><li class="rtejustify"><a href="/sites/portal/files/roles/pje-calc/pjecalc-9.9.5-instalador-x64.exe">Instalador PJe-Calc Cidadão 64bits</a><br />
+	Checksum (MD5): $1<br />
+	 </li>
+<li class="rtejustify"><a href="/sites/portal/files/roles/pje-calc/pjecalc-9.9.5-instalador-x32.exe">Instalador PJe-Calc Cidadão 32bits</a><br />
+	Checksum (MD5): 0F9096EBC46D27B28F08D597DC03CDA9</li>
+</ul><p class="rteindent1 rtejustify">Data de Publicação: 25/06/2026<br />
+EOF
+}
+cat > "$tmp/gh-bin/gh" <<EOF
+#!/bin/sh
+case "\$1 \$2" in
+    'release view') [ -f "$tmp/gh-criou" ] ;;
+    'release create') printf '%s\n' "\$@" > "$tmp/gh-criou"
+        while [ \$# -gt 0 ]; do [ "\$1" = --notes-file ] && cp "\$2" "$tmp/gh-notas"; shift; done ;;
+    *) exit 2 ;;
+esac
+EOF
+printf '#!/bin/sh\necho "$@" >> %s/avisou\n' "$tmp" > "$tmp/gh-bin/notify-send"
+chmod +x "$tmp/gh-bin/gh" "$tmp/gh-bin/notify-send"
+espelha() {
+    PATH="$tmp/gh-bin:$PATH" PJECALC_SITE="file://$site" PJECALC_PAGINA="file://$site/pagina/index.html" \
+        PJECALC_CACHE="$tmp/cache" PJECALC_JRE_URL="file://$tmp/jre.tar.gz" PJECALC_REPO=teste/teste \
+        sh "$raiz/scripts/espelhar.sh" >/dev/null 2>&1
+}
+
+pagina_falsa 00000000000000000000000000000000
+if espelha; then r=0; else r=1; fi
+confere 'MD5 diferente do TRT8: falha' test "$r" = 1
+confere 'MD5 diferente do TRT8: não cria release' test ! -e "$tmp/gh-criou"
+confere 'falha avisa na área de trabalho' test -s "$tmp/avisou"
+
+pagina_falsa "$md5"
+espelha
+confere 'versão nova vira o release v9.9.5' grep -qx v9.9.5 "$tmp/gh-criou"
+confere 'o asset é o instalador com o nome oficial' grep -q '/pjecalc-9.9.5-instalador-x64.exe$' "$tmp/gh-criou"
+confere 'as notas trazem o MD5 do TRT8' grep -qi "$md5" "$tmp/gh-notas"
+confere 'as notas trazem a data do TRT8 em ISO' grep -q 'Data de publicação no TRT8: 2026-06-25' "$tmp/gh-notas"
+confere 'as notas trazem o SHA-256' grep -q "SHA-256: \`$(sha256sum < "$site/sites/portal/files/roles/pje-calc/pjecalc-9.9.5-instalador-x64.exe" | cut -c1-64)\`" "$tmp/gh-notas"
+
+# O release existe: o gh falso responde a "release view" pelo arquivo.
+: > "$tmp/gh-criou"
+espelha
+confere 'versão já espelhada não cria outro release' test ! -s "$tmp/gh-criou"
+
 if [ "$falhas" -ne 0 ]; then
     echo "$falhas falha(s)" >&2
     exit 1

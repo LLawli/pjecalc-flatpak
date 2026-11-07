@@ -1,0 +1,12 @@
+# Uma vez por dia. Persistent faz rodar ao ligar o computador se o horário
+# passou com ele desligado.
+[Unit]
+Description=Confere todo dia se o TRT8 publicou um PJe-Calc novo
+
+[Timer]
+OnCalendar=*-*-* 09:00:00
+RandomizedDelaySec=30min
+Persistent=true
+
+[Install]
+WantedBy=timers.target

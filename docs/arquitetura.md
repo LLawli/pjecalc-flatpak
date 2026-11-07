@@ -6,7 +6,7 @@ O manifesto não leva nada do PJe-Calc. Dois arquivos chegam como extra-data, na
 máquina de quem instala:
 
 - o instalador oficial de Windows, `pjecalc-<versão>-instalador-x64.exe`, do
-  site do TRT8;
+  espelho nos releases deste repositório (ver Atualizações);
 - o Zulu 8 JRE para Linux, da Azul.
 
 O instalador é um 7-Zip autoextraível. `src/apply_extra.sh` o lê com o `bsdtar`
@@ -82,27 +82,44 @@ assina é o PJeOffice Pro, que já funciona com o Tessera.
 
 ## Atualizações
 
-`resolve-update.sh` lê a página de instalação do TRT8 e pega a maior versão x64.
-As versões anteriores mudam para outra página com a mesma URL, então o pin não
-quebra. O Zulu fica fixo no resolvedor: trocá-lo é um PR, porque a versão
-comparada é a do PJe-Calc.
-
 O `www.trt8.jus.br` bloqueia por país (medido em 2026-11-07, com e sem
-User-Agent de navegador): 403 dos runners do GitHub e de uma VPS em Viena,
-200 de banda larga no Brasil e de uma VPS num datacenter de São Paulo, que
-baixou os mesmos bytes do pin. Quem está fora do Brasil não consegue instalar.
-Por isso a FlatPark não consegue fixar o hash de uma versão nova sozinha, e o
-descritor tem `update.auto: false`. Uma versão nova vira PR feito de uma
-máquina no Brasil, no clone da FlatPark:
+User-Agent de navegador): 403 de uma VPS em Viena e dos runners do GitHub, 200
+de banda larga no Brasil e de uma VPS num datacenter de São Paulo, que baixou
+os mesmos bytes. Com a URL do TRT8 no manifesto, ninguém fora do Brasil
+instalaria, e o CI da FlatPark não conseguiria fixar nem conferir uma versão.
+
+Por isso cada instalador é espelhado, sem alteração, num release deste
+repositório, com a tag `v<versão>`. O PJe-Calc é software público gratuito da
+Justiça do Trabalho. `scripts/espelhar.sh` roda uma vez por dia numa máquina no
+Brasil, por um timer systemd de usuário (`packaging/systemd/`):
+
+1. lê a página de instalação do TRT8 e pega a maior versão x64, o MD5 publicado
+   ao lado do link e a data de publicação;
+2. sai se o release dessa versão já existe;
+3. baixa o instalador e para se o MD5 não bater;
+4. roda o `apply_extra.sh` do pacote sobre o arquivo real, com o JRE do
+   manifesto, e para se ele falhar ou se a pasta não for da versão anunciada;
+5. cria o release com o instalador e, nas notas, a origem, o MD5, o SHA-256 e a
+   data de publicação no TRT8.
+
+Uma falha aparece como notificação na área de trabalho e no
+`journalctl --user -u pjecalc-espelho`. O release dispara
+`.github/workflows/release.yml`, que baixa o asset do GitHub, confere o SHA-256
+das notas, passa de novo pelo `apply_extra` e avisa a FlatPark com o
+`publish-action`. O `resolve-update.sh` da FlatPark lê o último release daqui.
+O Zulu fica fixo no resolvedor: trocá-lo é um PR, porque a versão comparada é a
+do PJe-Calc.
+
+Para instalar o timer nesta máquina:
 
 ```sh
-FORCE=1 ./scripts/check-updates.sh br.jus.trt8.PJeCalc
-./scripts/check-apply-extra.sh br.jus.trt8.PJeCalc
+ln -sf ~/Personal/pjecalc-flatpak/packaging/systemd/pjecalc-espelho.* ~/.config/systemd/user/
+systemctl --user daemon-reload
+systemctl --user enable --now pjecalc-espelho.timer
 ```
 
-O primeiro reescreve o bloco de extra-data e o metainfo; o segundo prova o
-`apply_extra` na versão nova. O mesmo 403 deixa vermelho o `check-apply-extra`
-do CI da FlatPark nesses PRs. Quem instala do Brasil não é afetado.
+O manifesto daqui fica na versão testada à mão; quem acompanha os releases é a
+cópia na FlatPark.
 
 ## Medido
 

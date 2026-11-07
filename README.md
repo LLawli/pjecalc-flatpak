@@ -5,9 +5,10 @@ só tem instalador para Windows. Este pacote é para advogados, contadores e
 peritos que usam Linux, inclusive sistemas imutáveis como Silverblue e Bluefin,
 e querem o PJe-Calc sem Wine e sem instalar nada fora do sandbox.
 
-> Pacote da comunidade, sem vínculo com o TRT8 ou o CSJT. O programa é baixado
-> do site do TRT8 na instalação. O identificador `br.jus.trt8.PJeCalc` segue o
-> domínio do TRT8, que desenvolve o PJe-Calc, e não indica autoria do pacote.
+> Pacote da comunidade, sem vínculo com o TRT8 ou o CSJT. O programa é o
+> instalador oficial do TRT8, sem alteração, baixado na instalação. O
+> identificador `br.jus.trt8.PJeCalc` segue o domínio do TRT8, que desenvolve o
+> PJe-Calc, e não indica autoria do pacote.
 
 ## Instalar
 
@@ -18,8 +19,11 @@ flatpak remote-add --if-not-exists flatpark https://dl.flatpark.org/flatpark.fla
 flatpak install flatpark br.jus.trt8.PJeCalc
 ```
 
-A instalação baixa o instalador oficial (cerca de 280 MB) do site do TRT8 e um
-Java 8 para Linux da Azul (cerca de 40 MB), e confere o sha256 dos dois.
+A instalação baixa o instalador oficial (cerca de 280 MB) e um Java 8 para Linux
+da Azul (cerca de 40 MB), e confere o sha256 dos dois. O site do TRT8 só atende
+conexões do Brasil, então o instalador vem de um espelho nos
+[releases](https://github.com/LLawli/pjecalc-flatpak/releases) deste
+repositório: o mesmo arquivo, conferido com o MD5 que o TRT8 publica.
 
 ## Usar
 

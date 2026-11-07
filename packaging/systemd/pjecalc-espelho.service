@@ -1,0 +1,12 @@
+# Espelha no GitHub o instalador novo do PJe-Calc, se houver. Precisa de uma
+# conexão no Brasil e do gh autenticado na conta dona do repositório.
+[Unit]
+Description=Espelho do instalador do PJe-Calc Cidadão
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=%h/Personal/pjecalc-flatpak/scripts/espelhar.sh
+Nice=10
+IOSchedulingClass=idle
