@@ -26,6 +26,9 @@ instalador_falso() { # <versão> <destino>
         "$origem/.dados" "$origem/tomcat/conf" "$origem/tomcat/lib" \
         "$origem/tomcat/webapps/pjecalc/WEB-INF/classes/META-INF"
     echo jar > "$origem/bin/pjecalc.jar"
+    # Uma pasta "navegador" dentro da aplicação não é o Firefox Portable.
+    mkdir -p "$origem/tomcat/webapps/pjecalc/navegador"
+    echo js > "$origem/tomcat/webapps/pjecalc/navegador/teste.js"
     echo exe > "$origem/bin/jre/bin/javaw.exe"
     echo exe > "$origem/navegador/windows/FirefoxPortable.exe"
     echo "banco $1" > "$origem/.dados/pjecalc.h2.db"
@@ -53,6 +56,7 @@ confere 'versão vem do nome da pasta' test "$(cat "$extra/version")" = 9.9.0
 confere 'apaga os arquivos baixados' test ! -e "$extra/pjecalc-installer.exe" -a ! -e "$extra/jre.tar.gz"
 confere 'deixa de fora o Java do Windows' test ! -e "$extra/pjecalc/bin/jre"
 confere 'deixa de fora o Firefox Portable' test ! -e "$extra/pjecalc/navegador"
+confere 'mantém outras pastas chamadas navegador' test -f "$extra/pjecalc/tomcat/webapps/pjecalc/navegador/teste.js"
 confere 'mantém o banco inicial' test -f "$extra/pjecalc/.dados/pjecalc.h2.db"
 confere 'persistence.xml no lugar do modelo' test -f "$extra/pjecalc/tomcat/webapps/pjecalc/WEB-INF/classes/META-INF/persistence.xml"
 confere 'Java de Linux em java/' test -x "$extra/java/bin/java"
