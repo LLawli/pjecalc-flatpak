@@ -13,5 +13,6 @@ Formato do [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/).
   anterior a cada versão nova.
 - A página abre no navegador do usuário, pelo portal, também em desktops sem
   bandeja do sistema.
-- Atualização automática pela FlatPark, a partir da página de instalação do
-  TRT8.
+- Resolvedor de atualização para a FlatPark, a partir da página de instalação
+  do TRT8. As atualizações são PRs feitos à mão, porque o TRT8 recusa os
+  runners do GitHub.
