@@ -205,6 +205,44 @@ confere 'as notas trazem o SHA-256' grep -q "SHA-256: \`$(sha256sum < "$site/sit
 espelha
 confere 'versão já espelhada não cria outro release' test ! -s "$tmp/gh-criou"
 
+echo '== manifesto'
+# Sobre cópias dos arquivos de verdade, com uma seção anterior no CHANGELOG
+# para ver que ela fica intacta.
+copia="$tmp/repo"
+mkdir -p "$copia/scripts"
+cp "$raiz/scripts/atualizar-manifesto.sh" "$copia/scripts/"
+cp "$raiz/br.jus.trt8.PJeCalc.yml" "$raiz/br.jus.trt8.PJeCalc.metainfo.xml" "$copia/"
+cp "$raiz/CHANGELOG.md" "$copia/"
+printf '\n## [0.0.1] - 2026-01-01\n\n### Added\n\n- Antiga.\n' >> "$copia/CHANGELOG.md"
+cp "$copia/CHANGELOG.md" "$tmp/changelog-antes"
+url_nova=https://github.com/LLawli/pjecalc-flatpak/releases/download/v9.9.7/pjecalc-9.9.7-instalador-x64.exe
+sha_novo=$(printf 'a%.0s' $(seq 64))
+jre_antes=$(grep -A 6 'filename: jre.tar.gz' "$copia/br.jus.trt8.PJeCalc.yml")
+sh "$copia/scripts/atualizar-manifesto.sh" 9.9.7 "$url_nova" "$sha_novo" 123456 2026-12-01 >/dev/null
+m="$copia/br.jus.trt8.PJeCalc.yml"
+confere 'manifesto com a URL nova' grep -qF "url: $url_nova" "$m"
+confere 'manifesto com o sha256 novo' grep -qF "sha256: $sha_novo" "$m"
+confere 'manifesto com o tamanho novo' grep -qx '        size: 123456' "$m"
+confere 'bloco do JRE intacto' test "$(grep -A 6 'filename: jre.tar.gz' "$m")" = "$jre_antes"
+confere 'só um bloco do instalador' test "$(grep -c 'filename: pjecalc-installer.exe' "$m")" -eq 1
+confere 'metainfo com a versão nova primeiro' test "$(sed -n 's/.*<release version="\([^"]*\)" date="\([^"]*\)".*/\1 \2/p' "$copia/br.jus.trt8.PJeCalc.metainfo.xml" | head -1)" = '9.9.7 2026-12-01'
+confere 'metainfo válido' sh -c 'appstreamcli validate --no-net "$1" >/dev/null 2>&1' _ "$copia/br.jus.trt8.PJeCalc.metainfo.xml"
+confere 'CHANGELOG com a versão em Changed' grep -qF -- '- PJe-Calc Cidadão 9.9.7, publicado pelo TRT8 em 2026-12-01.' "$copia/CHANGELOG.md"
+confere 'CHANGELOG: linha dentro de [Unreleased]' test "$(awk '/^## \[/{s=$0} /9\.9\.7/{print s}' "$copia/CHANGELOG.md")" = '## [Unreleased]'
+confere 'CHANGELOG: seção antiga intacta' test "$(sed -n '/^## \[0.0.1\]/,$p' "$copia/CHANGELOG.md")" = "$(sed -n '/^## \[0.0.1\]/,$p' "$tmp/changelog-antes")"
+cp "$m" "$tmp/m-depois"
+sh "$copia/scripts/atualizar-manifesto.sh" 9.9.7 "$url_nova" "$sha_novo" 123456 2026-12-01 >/dev/null
+confere 'rodar de novo não muda nada' cmp -s "$m" "$tmp/m-depois"
+confere 'rodar de novo não duplica o CHANGELOG' test "$(grep -c '9\.9\.7' "$copia/CHANGELOG.md")" -eq 1
+sh "$copia/scripts/atualizar-manifesto.sh" 9.9.8 "$url_nova" "$sha_novo" 123456 2026-12-02 >/dev/null
+confere 'segunda versão entra no mesmo Changed' test "$(grep -c '^### Changed' "$copia/CHANGELOG.md")" -eq 1
+cp "$m" "$tmp/m-antes-velha"
+if sh "$copia/scripts/atualizar-manifesto.sh" 9.9.6 "$url_nova" "$sha_novo" 1 >/dev/null 2>&1; then r=0; else r=1; fi
+confere 'recusa versão anterior à do manifesto' test "$r" = 1
+confere 'versão anterior não mexe no manifesto' cmp -s "$m" "$tmp/m-antes-velha"
+if sh "$copia/scripts/atualizar-manifesto.sh" '1.0;rm' "$url_nova" "$sha_novo" 1 >/dev/null 2>&1; then r=0; else r=1; fi
+confere 'recusa versão inválida' test "$r" = 1
+
 if [ "$falhas" -ne 0 ]; then
     echo "$falhas falha(s)" >&2
     exit 1

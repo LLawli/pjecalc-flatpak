@@ -118,8 +118,10 @@ systemctl --user daemon-reload
 systemctl --user enable --now pjecalc-espelho.timer
 ```
 
-O manifesto daqui fica na versão testada à mão; quem acompanha os releases é a
-cópia na FlatPark.
+Depois de conferir, a mesma Action leva o manifesto, o metainfo e o CHANGELOG
+daqui para a versão nova (`scripts/atualizar-manifesto.sh`), roda o `ci.sh` e
+faz o commit como `github-actions[bot]`, sem assinatura: um commit assinado
+exigiria a chave física. O script recusa uma versão anterior à do manifesto.
 
 ## Medido
 

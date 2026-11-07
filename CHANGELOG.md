@@ -17,3 +17,5 @@ Formato do [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/).
   conexões do Brasil. `scripts/espelhar.sh`, num timer diário, publica cada
   versão nova depois de conferir o MD5 do TRT8 e passar pelo `apply_extra`.
 - Atualização automática pela FlatPark, a partir desses releases.
+- A Action de release atualiza o manifesto, o metainfo e o CHANGELOG daqui para
+  cada versão espelhada, com um commit do `github-actions[bot]`.

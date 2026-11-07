@@ -37,6 +37,49 @@ jobs:
           (cd prova && sh ../src/apply_extra.sh)
           test "$(cat prova/version)" = "$versao"
 
+  # Leva o manifesto daqui para a versão do release, com um commit do
+  # github-actions[bot], sem assinatura: o commit assinado exige a chave física.
+  # No disparo manual não muda nada se a tag é a do manifesto, e recusa uma
+  # anterior: serve para provar o job.
+  manifesto:
+    needs: conferir
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    concurrency: manifesto
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - run: sudo apt-get update && sudo apt-get install -y shellcheck libarchive-tools desktop-file-utils appstream jq
+      - name: Atualiza manifesto, metainfo e CHANGELOG
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.event.release.tag_name || inputs.tag }}
+        run: |
+          versao=${TAG#v}
+          nome="pjecalc-$versao-instalador-x64.exe"
+          corpo=$(gh release view "$TAG" --json body -q .body)
+          sha=$(printf '%s\n' "$corpo" | sed -n 's/.*SHA-256: `\([0-9a-f]\{64\}\)`.*/\1/p')
+          data=$(printf '%s\n' "$corpo" | sed -n 's/.*Data de publicação no TRT8: \([0-9-]\{10\}\).*/\1/p')
+          tamanho=$(gh release view "$TAG" --json assets -q ".assets[] | select(.name == \"$nome\") | .size")
+          url="https://github.com/$GITHUB_REPOSITORY/releases/download/$TAG/$nome"
+          ./scripts/atualizar-manifesto.sh "$versao" "$url" "$sha" "$tamanho" "$data"
+      - run: ./scripts/ci.sh
+      - name: Commit e push
+        env:
+          TAG: ${{ github.event.release.tag_name || inputs.tag }}
+        run: |
+          git diff --quiet && { echo 'nada a mudar'; exit 0; }
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -am "chore: atualiza o PJe-Calc Cidadão para ${TAG#v}"
+          for _ in 1 2 3; do
+              git push origin HEAD:main && exit 0
+              git pull --rebase origin main
+          done
+          exit 1
+
   flatpark:
     needs: conferir
     if: github.event_name == 'release'
