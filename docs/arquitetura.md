@@ -87,11 +87,13 @@ As versões anteriores mudam para outra página com a mesma URL, então o pin n�
 quebra. O Zulu fica fixo no resolvedor: trocá-lo é um PR, porque a versão
 comparada é a do PJe-Calc.
 
-O `www.trt8.jus.br` responde 403 aos runners do GitHub (medido em 2026-11-07,
-com User-Agent de navegador). Daqui do Brasil responde 200. Por isso a
-FlatPark não consegue fixar o hash de uma versão nova sozinha, e o descritor tem
-`update.auto: false`. Uma versão nova vira PR feito de uma máquina que alcança o
-site, no clone da FlatPark:
+O `www.trt8.jus.br` bloqueia por país (medido em 2026-11-07, com e sem
+User-Agent de navegador): 403 dos runners do GitHub e de uma VPS em Viena,
+200 de banda larga no Brasil e de uma VPS num datacenter de São Paulo, que
+baixou os mesmos bytes do pin. Quem está fora do Brasil não consegue instalar.
+Por isso a FlatPark não consegue fixar o hash de uma versão nova sozinha, e o
+descritor tem `update.auto: false`. Uma versão nova vira PR feito de uma
+máquina no Brasil, no clone da FlatPark:
 
 ```sh
 FORCE=1 ./scripts/check-updates.sh br.jus.trt8.PJeCalc
