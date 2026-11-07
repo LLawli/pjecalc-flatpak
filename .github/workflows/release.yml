@@ -5,6 +5,12 @@ name: release
 on:
   release:
     types: [published]
+  # Confere de novo um release já publicado, sem avisar a FlatPark.
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Tag do release, como v2.16.0
+        required: true
 permissions:
   contents: read
 jobs:
@@ -16,10 +22,10 @@ jobs:
       - name: Confere o asset com o SHA-256 do release e passa pelo apply_extra
         env:
           GH_TOKEN: ${{ github.token }}
-          TAG: ${{ github.event.release.tag_name }}
-          CORPO: ${{ github.event.release.body }}
+          TAG: ${{ github.event.release.tag_name || inputs.tag }}
         run: |
           versao=${TAG#v}
+          CORPO=$(gh release view "$TAG" --json body -q .body)
           nome="pjecalc-$versao-instalador-x64.exe"
           esperado=$(printf '%s\n' "$CORPO" | sed -n 's/.*SHA-256: `\([0-9a-f]\{64\}\)`.*/\1/p')
           test -n "$esperado"
@@ -33,6 +39,7 @@ jobs:
 
   flatpark:
     needs: conferir
+    if: github.event_name == 'release'
     runs-on: ubuntu-24.04
     # Sem o aviso, a FlatPark acha o release na varredura de 12 em 12 horas.
     continue-on-error: true
