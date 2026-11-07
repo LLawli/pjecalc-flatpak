@@ -42,10 +42,12 @@ echo '== downloads'
 sed -n 's/^ *url: //p' "$id.yml" > "${TMPDIR:-/tmp}/pjecalc-urls"
 sed -n 's/^ *size: //p' "$id.yml" > "${TMPDIR:-/tmp}/pjecalc-tamanhos"
 paste "${TMPDIR:-/tmp}/pjecalc-urls" "${TMPDIR:-/tmp}/pjecalc-tamanhos" | while read -r url esperado; do
-    tamanho=$(curl -fsSIL -m 30 -A 'Mozilla/5.0' "$url" | tr -d '\r' \
-        | sed -n 's/^[Cc]ontent-[Ll]ength: //p' | tail -1)
-    if [ -z "$tamanho" ]; then
-        echo "  aviso: $url inacessível daqui"
+    # O TRT8 responde 403 aos runners do GitHub: o tamanho só vale com 200.
+    cabecalhos=$(curl -sIL -m 30 -A 'Mozilla/5.0' "$url" | tr -d '\r' || true)
+    status=$(printf '%s\n' "$cabecalhos" | sed -n 's/^HTTP\/[0-9.]* \([0-9]*\).*/\1/p' | tail -1)
+    tamanho=$(printf '%s\n' "$cabecalhos" | sed -n 's/^[Cc]ontent-[Ll]ength: //p' | tail -1)
+    if [ "$status" != 200 ]; then
+        echo "  aviso: $url inacessível daqui (${status:-sem resposta})"
     elif [ "$tamanho" != "$esperado" ]; then
         echo "$url mudou: $tamanho bytes, o manifesto diz $esperado" >&2
         exit 1
