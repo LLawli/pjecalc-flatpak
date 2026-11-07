@@ -1,0 +1,11 @@
+name: ci
+on:
+  push:
+  pull_request:
+jobs:
+  ci:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update && sudo apt-get install -y shellcheck libarchive-tools desktop-file-utils appstream jq
+      - run: ./scripts/ci.sh
